@@ -7,6 +7,39 @@ from app import models, schemas, auth
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 
+@router.get("/stats/summary")
+def get_stats(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    apps = db.query(models.Application).filter(
+        models.Application.user_id == current_user.id
+    ).all()
+
+    total = len(apps)
+
+    by_status = {}
+    for app in apps:
+        by_status[app.status] = by_status.get(app.status, 0) + 1
+
+    responded = total - by_status.get("Applied", 0)
+    response_rate = round((responded / total * 100), 1) if total > 0 else 0
+
+    interviews = by_status.get("Interview", 0)
+    interview_rate = round((interviews / total * 100), 1) if total > 0 else 0
+
+    offers = by_status.get("Offer", 0)
+    offer_rate = round((offers / total * 100), 1) if total > 0 else 0
+
+    return {
+        "total": total,
+        "by_status": by_status,
+        "response_rate": response_rate,
+        "interview_rate": interview_rate,
+        "offer_rate": offer_rate,
+    }
+
+
 @router.get("/", response_model=List[schemas.ApplicationOut])
 def get_applications(
     db: Session = Depends(get_db),
