@@ -1,16 +1,36 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
-
-const STATUS_COLORS = {
-  'Applied':      'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  'Phone Screen': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  'Interview':    'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  'Offer':        'bg-green-500/10 text-green-400 border-green-500/20',
-  'Rejected':     'bg-red-500/10 text-red-400 border-red-500/20',
-}
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell
+} from 'recharts'
 
 const STATUSES = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected']
+
+const STATUS_STYLE = {
+  'Applied':      { color: 'rgba(255,255,255,0.55)', border: 'rgba(255,255,255,0.2)' },
+  'Phone Screen': { color: 'rgba(255,255,255,0.65)', border: 'rgba(255,255,255,0.28)' },
+  'Interview':    { color: 'rgba(255,255,255,0.92)', border: 'rgba(255,255,255,0.5)' },
+  'Offer':        { color: '#fff',                   border: 'rgba(255,255,255,0.85)' },
+  'Rejected':     { color: 'rgba(255,255,255,0.28)', border: 'rgba(255,255,255,0.12)' },
+}
+
+const PIE_GRAYS = [
+  'rgba(255,255,255,0.8)',
+  'rgba(255,255,255,0.55)',
+  'rgba(255,255,255,0.35)',
+  'rgba(255,255,255,0.2)',
+  'rgba(255,255,255,0.1)',
+]
+
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+}
 
 export default function Dashboard() {
   const [applications, setApplications] = useState([])
@@ -20,9 +40,7 @@ export default function Dashboard() {
   const [filterStatus, setFilterStatus] = useState('All')
   const navigate = useNavigate()
 
-  useEffect(() => {
-    fetchAll()
-  }, [])
+  useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     try {
@@ -33,7 +51,6 @@ export default function Dashboard() {
       setApplications(appsRes.data)
       setStats(statsRes.data)
     } catch {
-      // token expired — redirect to login
       navigate('/login')
     } finally {
       setLoading(false)
@@ -49,52 +66,125 @@ export default function Dashboard() {
     ? applications
     : applications.filter(a => a.status === filterStatus)
 
+  const statusCounts = applications.reduce((acc, app) => {
+    acc[app.status] = (acc[app.status] || 0) + 1
+    return acc
+  }, {})
+
+  const pieData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }))
+
+  const weekCounts = applications.reduce((acc, app) => {
+    const date = new Date(app.date_applied)
+    const week = `W${String(getWeekNumber(date)).padStart(2, '0')}`
+    acc[week] = (acc[week] || 0) + 1
+    return acc
+  }, {})
+
+  const barData = Object.entries(weekCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week, count]) => ({ week, count }))
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-500 text-sm">Loading...</div>
+      <div style={{ minHeight: '100vh', background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.2em' }}>LOADING...</span>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div style={{ minHeight: '100vh', background: '#090909', color: '#fff' }}>
 
-      {/* Navbar */}
-      <nav className="border-b border-gray-800 px-6 py-4 flex justify-between items-center">
-        <h1 className="font-bold text-lg tracking-tight">Job Tracker</h1>
-        <button
-          onClick={logout}
-          className="text-sm text-gray-500 hover:text-white transition-colors"
-        >
+      <nav style={{ borderBottom: '1px solid #1a1a1a', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff' }}>JOB TRACKER</span>
+        <button onClick={logout} style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}>
           Sign out
         </button>
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
 
         {/* Stat cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <StatCard label="Total Applied"    value={stats.total} />
-            <StatCard label="Response Rate"    value={`${stats.response_rate}%`} />
-            <StatCard label="Interview Rate"   value={`${stats.interview_rate}%`} />
-            <StatCard label="Offer Rate"       value={`${stats.offer_rate}%`} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden', marginBottom: 1 }}>
+            {[
+              { label: 'APPLIED',   value: stats.total },
+              { label: 'RESPONSE',  value: `${stats.response_rate}%` },
+              { label: 'INTERVIEW', value: `${stats.interview_rate}%` },
+              { label: 'OFFERS',    value: `${stats.offer_rate}%` },
+            ].map(({ label, value }) => (
+              <div key={label} style={{ background: '#0e0e0e', padding: '16px 18px' }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
+                <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', marginTop: 6, letterSpacing: '0.16em' }}>{label}</div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Header row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex gap-2 flex-wrap">
+        {/* Charts */}
+        {applications.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none', borderRadius: '0 0 6px 6px', overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ background: '#0b0b0b', padding: '16px 18px' }}>
+              <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', marginBottom: 12 }}>WEEKLY VOLUME</div>
+              <ResponsiveContainer width="100%" height={90}>
+                <BarChart data={barData} barSize={14}>
+                  <XAxis dataKey="week" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
+                  <YAxis hide allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background: '#111', border: '1px solid #222', borderRadius: 4, fontFamily: 'monospace', fontSize: 10 }}
+                    labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+                    itemStyle={{ color: '#fff' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                  />
+                  <Bar dataKey="count" fill="rgba(255,255,255,0.7)" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ background: '#0b0b0b', padding: '16px 18px' }}>
+              <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', marginBottom: 10 }}>PIPELINE</div>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <ResponsiveContainer width={80} height={80}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={24} outerRadius={36} dataKey="value" paddingAngle={2}>
+                      {pieData.map((_, i) => <Cell key={i} fill={PIE_GRAYS[i % PIE_GRAYS.length]} />)}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                  {pieData.map((entry, i) => (
+                    <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 5, height: 5, background: PIE_GRAYS[i % PIE_GRAYS.length], borderRadius: 1, flexShrink: 0 }} />
+                      <span style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', flex: 1 }}>{entry.name.toUpperCase()}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>{entry.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {['All', ...STATUSES].map(s => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  filterStatus === s
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'border-gray-700 text-gray-400 hover:border-gray-500'
-                }`}
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 9,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  padding: '4px 11px',
+                  borderRadius: 3,
+                  border: filterStatus === s ? '1px solid #fff' : '1px solid #242424',
+                  background: filterStatus === s ? '#fff' : 'transparent',
+                  color: filterStatus === s ? '#000' : 'rgba(255,255,255,0.42)',
+                  cursor: 'pointer',
+                  fontWeight: filterStatus === s ? 700 : 400,
+                }}
               >
                 {s}
               </button>
@@ -102,53 +192,49 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '6px 16px', borderRadius: 3, border: '1px solid #fff', background: '#fff', color: '#000', cursor: 'pointer' }}
           >
-            + Add Application
+            + ADD
           </button>
         </div>
 
-        {/* Applications table */}
+        {/* Table */}
         {filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-600">
-            {applications.length === 0
-              ? 'No applications yet — add your first one'
-              : `No applications with status "${filterStatus}"`}
+          <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.16em' }}>
+            {applications.length === 0 ? 'NO APPLICATIONS YET' : `NO ${filterStatus.toUpperCase()} APPLICATIONS`}
           </div>
         ) : (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
+          <div style={{ border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr className="border-b border-gray-800 text-gray-500 text-xs uppercase tracking-wider">
-                  <th className="text-left px-5 py-3">Company</th>
-                  <th className="text-left px-5 py-3">Role</th>
-                  <th className="text-left px-5 py-3">Status</th>
-                  <th className="text-left px-5 py-3">Date Applied</th>
-                  <th className="text-left px-5 py-3">Salary</th>
+                <tr style={{ borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' }}>
+                  {['Company', 'Role', 'Status', 'Date Applied', 'Salary'].map(h => (
+                    <th key={h} style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: 'left', padding: '9px 16px', fontWeight: 400 }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((app, i) => (
-                  <tr
-                    key={app.id}
-                    className={`border-b border-gray-800/50 hover:bg-gray-800/40 transition-colors ${
-                      i === filtered.length - 1 ? 'border-b-0' : ''
-                    }`}
-                  >
-                    <td className="px-5 py-3.5 font-medium text-white">{app.company}</td>
-                    <td className="px-5 py-3.5 text-gray-400">{app.role}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-xs px-2.5 py-1 rounded-full border ${STATUS_COLORS[app.status] || 'bg-gray-700 text-gray-300'}`}>
+                  <tr key={app.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111' : 'none', background: i % 2 === 0 ? '#0d0d0d' : '#0b0b0b' }}>
+                    <td style={{ padding: '11px 16px', fontWeight: 600, color: '#fff', letterSpacing: '-0.015em' }}>{app.company}</td>
+                    <td style={{ padding: '11px 16px', color: 'rgba(255,255,255,0.52)' }}>{app.role}</td>
+                    <td style={{ padding: '11px 16px' }}>
+                      <span style={{
+                        fontFamily: 'monospace', fontSize: 9,
+                        letterSpacing: '0.12em', textTransform: 'uppercase',
+                        padding: '3px 8px',
+                        border: `1px solid ${STATUS_STYLE[app.status]?.border || 'rgba(255,255,255,0.15)'}`,
+                        color: STATUS_STYLE[app.status]?.color || 'rgba(255,255,255,0.5)',
+                        borderRadius: 3, display: 'inline-block',
+                      }}>
                         {app.status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400">{app.date_applied}</td>
-                    <td className="px-5 py-3.5 text-gray-400">
+                    <td style={{ padding: '11px 16px', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{app.date_applied}</td>
+                    <td style={{ padding: '11px 16px', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
                       {app.salary_min && app.salary_max
                         ? `£${app.salary_min.toLocaleString()} – £${app.salary_max.toLocaleString()}`
-                        : app.salary_min
-                        ? `From £${app.salary_min.toLocaleString()}`
-                        : 'Not specified'}
+                        : app.salary_min ? `£${app.salary_min.toLocaleString()}+` : '—'}
                     </td>
                   </tr>
                 ))}
@@ -158,22 +244,12 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Add Application Modal */}
       {showModal && (
         <AddModal
           onClose={() => setShowModal(false)}
-          onSave={() => { setShowModal(false); fetchAll(); }}
+          onSave={() => { setShowModal(false); fetchAll() }}
         />
       )}
-    </div>
-  )
-}
-
-function StatCard({ label, value }) {
-  return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4">
-      <div className="text-2xl font-bold text-white">{value}</div>
-      <div className="text-xs text-gray-500 mt-1">{label}</div>
     </div>
   )
 }
@@ -187,14 +263,11 @@ function AddModal({ onClose, onSave }) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
 
-  function update(field, value) {
-    setForm(f => ({ ...f, [field]: value }))
-  }
+  function update(field, value) { setForm(f => ({ ...f, [field]: value })) }
 
   async function handleSave() {
-    if (!form.company || !form.role) { setError('Company and role are required'); return; }
-    setLoading(true)
-    setError('')
+    if (!form.company || !form.role) { setError('Company and role are required'); return }
+    setLoading(true); setError('')
     try {
       await client.post('/applications/', {
         ...form,
@@ -202,97 +275,68 @@ function AddModal({ onClose, onSave }) {
         salary_max: form.salary_max ? parseInt(form.salary_max) : null,
       })
       onSave()
-    } catch {
-      setError('Failed to save application')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('Failed to save') } finally { setLoading(false) }
+  }
+
+  const inputStyle = {
+    width: '100%', background: '#0d0d0d',
+    border: '1px solid #1e1e1e', color: '#fff',
+    borderRadius: 3, padding: '8px 10px', fontSize: 12,
+    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  }
+
+  const labelStyle = {
+    display: 'block', fontFamily: 'monospace', fontSize: 9,
+    color: 'rgba(255,255,255,0.35)', letterSpacing: '0.14em',
+    textTransform: 'uppercase', marginBottom: 5,
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="font-semibold text-white">Add Application</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white text-xl leading-none">×</button>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+      <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Add Application</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-4">
+          <div style={{ border: '1px solid #2e1a1a', background: '#150d0d', color: 'rgba(255,120,120,0.8)', fontFamily: 'monospace', fontSize: 9, padding: '8px 10px', borderRadius: 3, marginBottom: 14, letterSpacing: '0.08em' }}>
             {error}
           </div>
         )}
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Company *" value={form.company} onChange={v => update('company', v)} placeholder="Google" />
-            <Field label="Role *" value={form.role} onChange={v => update('role', v)} placeholder="Software Engineer" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div><label style={labelStyle}>Company *</label><input style={inputStyle} value={form.company} onChange={e => update('company', e.target.value)} placeholder="Google" /></div>
+            <div><label style={labelStyle}>Role *</label><input style={inputStyle} value={form.role} onChange={e => update('role', e.target.value)} placeholder="Software Engineer" /></div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Status</label>
-              <select
-                value={form.status}
-                onChange={e => update('status', e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-              >
-                {STATUSES.map(s => <option key={s}>{s}</option>)}
+              <label style={labelStyle}>Status</label>
+              <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.status} onChange={e => update('status', e.target.value)}>
+                {STATUSES.map(s => <option key={s} value={s} style={{ background: '#0d0d0d' }}>{s}</option>)}
               </select>
             </div>
-            <Field label="Date Applied" type="date" value={form.date_applied} onChange={v => update('date_applied', v)} />
+            <div><label style={labelStyle}>Date Applied</label><input type="date" style={inputStyle} value={form.date_applied} onChange={e => update('date_applied', e.target.value)} /></div>
           </div>
-
-          <Field label="Job URL" value={form.job_url} onChange={v => update('job_url', v)} placeholder="https://..." />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Min Salary (£)" type="number" value={form.salary_min} onChange={v => update('salary_min', v)} placeholder="40000" />
-            <Field label="Max Salary (£)" type="number" value={form.salary_max} onChange={v => update('salary_max', v)} placeholder="60000" />
+          <div><label style={labelStyle}>Job URL</label><input style={inputStyle} value={form.job_url} onChange={e => update('job_url', e.target.value)} placeholder="https://..." /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div><label style={labelStyle}>Min Salary (£)</label><input type="number" style={inputStyle} value={form.salary_min} onChange={e => update('salary_min', e.target.value)} placeholder="40000" /></div>
+            <div><label style={labelStyle}>Max Salary (£)</label><input type="number" style={inputStyle} value={form.salary_max} onChange={e => update('salary_max', e.target.value)} placeholder="60000" /></div>
           </div>
-
           <div>
-            <label className="block text-xs text-gray-400 mb-1.5">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={e => update('notes', e.target.value)}
-              rows={3}
-              placeholder="Any notes about this application..."
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600 resize-none"
-            />
+            <label style={labelStyle}>Notes</label>
+            <textarea style={{ ...inputStyle, resize: 'none', height: 72 }} value={form.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes about this application..." />
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="flex-1 border border-gray-700 text-gray-400 hover:text-white rounded-lg py-2 text-sm transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors"
-          >
+        <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+          <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #222', background: 'transparent', color: 'rgba(255,255,255,0.4)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={loading} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
             {loading ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function Field({ label, value, onChange, placeholder, type = 'text' }) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-400 mb-1.5">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600"
-      />
     </div>
   )
 }

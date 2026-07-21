@@ -25,59 +25,82 @@ export default function Register() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+  const inputStyle = {
+    width: '100%', background: '#0d0d0d',
+    border: '1px solid #1e1e1e', color: '#fff',
+    borderRadius: 3, padding: '10px 12px', fontSize: 13,
+    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+  }
 
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Job Tracker</h1>
-          <p className="text-gray-500 text-sm mt-1">Create your account</p>
+  const labelStyle = {
+    display: 'block', fontFamily: 'monospace', fontSize: 9,
+    color: 'rgba(255,255,255,0.35)', letterSpacing: '0.16em',
+    textTransform: 'uppercase', marginBottom: 6,
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff', marginBottom: 8 }}>JOB TRACKER</div>
+          <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Create your account</div>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-8">
+        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 6, padding: '28px 24px' }}>
+
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3 mb-6">
+            <div style={{ border: '1px solid #2a1515', background: '#110a0a', color: 'rgba(255,100,100,0.8)', fontFamily: 'monospace', fontSize: 9, padding: '9px 12px', borderRadius: 3, marginBottom: 20, letterSpacing: '0.08em' }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Email</label>
+              <label style={labelStyle}>Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600"
+                style={inputStyle}
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Password</label>
+              <label style={labelStyle}>Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 placeholder-gray-600"
+                style={inputStyle}
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium rounded-lg py-2.5 text-sm transition-colors"
+              style={{
+                fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                padding: '11px', border: '1px solid #fff',
+                background: '#fff', color: '#000', borderRadius: 3,
+                cursor: 'pointer', marginTop: 4,
+                opacity: loading ? 0.6 : 1,
+              }}
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <div style={{ height: 1, background: '#141414', margin: '20px 0' }} />
+
+          <p style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em' }}>
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300">
+            <Link to="/login" style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'none', letterSpacing: '0.1em' }}>
               Sign in
             </Link>
           </p>
