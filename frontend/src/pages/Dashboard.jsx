@@ -37,6 +37,8 @@ export default function Dashboard() {
   const [stats, setStats]               = useState(null)
   const [loading, setLoading]           = useState(true)
   const [showModal, setShowModal]       = useState(false)
+  const [editingApp, setEditingApp]     = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [filterStatus, setFilterStatus] = useState('All')
   const navigate = useNavigate()
 
@@ -60,6 +62,21 @@ export default function Dashboard() {
   function logout() {
     localStorage.removeItem('token')
     navigate('/login')
+  }
+
+  function handleRowClick(app) {
+    setEditingApp(app)
+    setShowModal(true)
+  }
+
+  async function confirmDelete() {
+    try {
+      await client.delete(`/applications/${deleteTarget.id}`)
+      setDeleteTarget(null)
+      fetchAll()
+    } catch {
+      setDeleteTarget(null)
+    }
   }
 
   const filtered = filterStatus === 'All'
@@ -173,17 +190,12 @@ export default function Dashboard() {
                 key={s}
                 onClick={() => setFilterStatus(s)}
                 style={{
-                  fontFamily: 'monospace',
-                  fontSize: 9,
-                  letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                  padding: '4px 11px',
-                  borderRadius: 3,
+                  fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', padding: '4px 11px', borderRadius: 3,
                   border: filterStatus === s ? '1px solid #fff' : '1px solid #242424',
                   background: filterStatus === s ? '#fff' : 'transparent',
                   color: filterStatus === s ? '#000' : 'rgba(255,255,255,0.42)',
-                  cursor: 'pointer',
-                  fontWeight: filterStatus === s ? 700 : 400,
+                  cursor: 'pointer', fontWeight: filterStatus === s ? 700 : 400,
                 }}
               >
                 {s}
@@ -191,7 +203,7 @@ export default function Dashboard() {
             ))}
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => { setEditingApp(null); setShowModal(true) }}
             style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '6px 16px', borderRadius: 3, border: '1px solid #fff', background: '#fff', color: '#000', cursor: 'pointer' }}
           >
             + ADD
@@ -208,21 +220,24 @@ export default function Dashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' }}>
-                  {['Company', 'Role', 'Status', 'Date Applied', 'Salary'].map(h => (
+                  {['Company', 'Role', 'Status', 'Date Applied', 'Salary', ''].map(h => (
                     <th key={h} style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: 'left', padding: '9px 16px', fontWeight: 400 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((app, i) => (
-                  <tr key={app.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111' : 'none', background: i % 2 === 0 ? '#0d0d0d' : '#0b0b0b' }}>
+                  <tr
+                    key={app.id}
+                    onClick={() => handleRowClick(app)}
+                    style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111' : 'none', background: i % 2 === 0 ? '#0d0d0d' : '#0b0b0b', cursor: 'pointer' }}
+                  >
                     <td style={{ padding: '11px 16px', fontWeight: 600, color: '#fff', letterSpacing: '-0.015em' }}>{app.company}</td>
                     <td style={{ padding: '11px 16px', color: 'rgba(255,255,255,0.52)' }}>{app.role}</td>
                     <td style={{ padding: '11px 16px' }}>
                       <span style={{
-                        fontFamily: 'monospace', fontSize: 9,
-                        letterSpacing: '0.12em', textTransform: 'uppercase',
-                        padding: '3px 8px',
+                        fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.12em',
+                        textTransform: 'uppercase', padding: '3px 8px',
                         border: `1px solid ${STATUS_STYLE[app.status]?.border || 'rgba(255,255,255,0.15)'}`,
                         color: STATUS_STYLE[app.status]?.color || 'rgba(255,255,255,0.5)',
                         borderRadius: 3, display: 'inline-block',
@@ -236,6 +251,14 @@ export default function Dashboard() {
                         ? `£${app.salary_min.toLocaleString()} – £${app.salary_max.toLocaleString()}`
                         : app.salary_min ? `£${app.salary_min.toLocaleString()}+` : '—'}
                     </td>
+                    <td style={{ padding: '11px 16px', textAlign: 'right' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setDeleteTarget(app) }}
+                        style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.45)', borderRadius: 3, cursor: 'pointer' }}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -244,21 +267,59 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Edit / Add Modal */}
       {showModal && (
         <AddModal
-          onClose={() => setShowModal(false)}
-          onSave={() => { setShowModal(false); fetchAll() }}
+          onClose={() => { setShowModal(false); setEditingApp(null) }}
+          onSave={() => { setShowModal(false); setEditingApp(null); fetchAll() }}
+          existing={editingApp}
         />
+      )}
+
+      {/* Custom Delete Dialog */}
+      {deleteTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+          <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 360, padding: 24 }}>
+            <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
+              Delete Application
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 6, lineHeight: 1.6 }}>
+              Remove <span style={{ color: '#fff', fontWeight: 600 }}>{deleteTarget.company}</span> — <span style={{ color: 'rgba(255,255,255,0.6)' }}>{deleteTarget.role}</span>?
+            </div>
+            <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', marginBottom: 22 }}>
+              This cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.55)', borderRadius: 3, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid rgba(255,255,255,0.7)', background: 'transparent', color: 'rgba(255,255,255,0.8)', borderRadius: 3, cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
-function AddModal({ onClose, onSave }) {
+function AddModal({ onClose, onSave, existing }) {
   const [form, setForm] = useState({
-    company: '', role: '', status: 'Applied',
-    date_applied: new Date().toISOString().split('T')[0],
-    job_url: '', salary_min: '', salary_max: '', notes: '',
+    company:      existing?.company      || '',
+    role:         existing?.role         || '',
+    status:       existing?.status       || 'Applied',
+    date_applied: existing?.date_applied || new Date().toISOString().split('T')[0],
+    job_url:      existing?.job_url      || '',
+    salary_min:   existing?.salary_min   || '',
+    salary_max:   existing?.salary_max   || '',
+    notes:        existing?.notes        || '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
@@ -269,19 +330,23 @@ function AddModal({ onClose, onSave }) {
     if (!form.company || !form.role) { setError('Company and role are required'); return }
     setLoading(true); setError('')
     try {
-      await client.post('/applications/', {
+      const payload = {
         ...form,
         salary_min: form.salary_min ? parseInt(form.salary_min) : null,
         salary_max: form.salary_max ? parseInt(form.salary_max) : null,
-      })
+      }
+      if (existing) {
+        await client.put(`/applications/${existing.id}`, payload)
+      } else {
+        await client.post('/applications/', payload)
+      }
       onSave()
     } catch { setError('Failed to save') } finally { setLoading(false) }
   }
 
   const inputStyle = {
-    width: '100%', background: '#0d0d0d',
-    border: '1px solid #1e1e1e', color: '#fff',
-    borderRadius: 3, padding: '8px 10px', fontSize: 12,
+    width: '100%', background: '#0d0d0d', border: '1px solid #1e1e1e',
+    color: '#fff', borderRadius: 3, padding: '8px 10px', fontSize: 12,
     outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
   }
 
@@ -295,7 +360,9 @@ function AddModal({ onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>Add Application</span>
+          <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
+            {existing ? 'Edit Application' : 'Add Application'}
+          </span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
         </div>
 
@@ -333,7 +400,7 @@ function AddModal({ onClose, onSave }) {
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #222', background: 'transparent', color: 'rgba(255,255,255,0.4)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={loading} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? 'Saving...' : existing ? 'Save Changes' : 'Save'}
           </button>
         </div>
       </div>
