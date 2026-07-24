@@ -19,7 +19,7 @@ const STATUS_STYLE = {
 const PIE_GRAYS = [
   'rgba(255,255,255,0.8)',
   'rgba(255,255,255,0.55)',
-  'rgba(255,255,255,0.35)',
+  'rgba(255,255,255,0.55)',
   'rgba(255,255,255,0.2)',
   'rgba(255,255,255,0.1)',
 ]
@@ -65,8 +65,7 @@ export default function Dashboard() {
   }
 
   function handleRowClick(app) {
-    setEditingApp(app)
-    setShowModal(true)
+    navigate(`/application/${app.id}`)
   }
 
   async function confirmDelete() {
@@ -114,14 +113,16 @@ export default function Dashboard() {
 
       <nav style={{ borderBottom: '1px solid #1a1a1a', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff' }}>JOB TRACKER</span>
-        <button onClick={logout} style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button
+          onClick={logout}
+          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
           Sign out
         </button>
       </nav>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
 
-        {/* Stat cards */}
         {stats && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden', marginBottom: 1 }}>
             {[
@@ -138,7 +139,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Charts */}
         {applications.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none', borderRadius: '0 0 6px 6px', overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ background: '#0b0b0b', padding: '16px 18px' }}>
@@ -182,7 +182,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {['All', ...STATUSES].map(s => (
@@ -210,7 +209,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Table */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.16em' }}>
             {applications.length === 0 ? 'NO APPLICATIONS YET' : `NO ${filterStatus.toUpperCase()} APPLICATIONS`}
@@ -267,7 +265,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Edit / Add Modal */}
       {showModal && (
         <AddModal
           onClose={() => { setShowModal(false); setEditingApp(null) }}
@@ -276,23 +273,18 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Custom Delete Dialog */}
       {deleteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
           <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 360, padding: 24 }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
-              Delete Application
-            </div>
+            <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>Delete Application</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 6, lineHeight: 1.6 }}>
               Remove <span style={{ color: '#fff', fontWeight: 600 }}>{deleteTarget.company}</span> — <span style={{ color: 'rgba(255,255,255,0.6)' }}>{deleteTarget.role}</span>?
             </div>
-            <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', marginBottom: 22 }}>
-              This cannot be undone.
-            </div>
+            <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', marginBottom: 22 }}>This cannot be undone.</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => setDeleteTarget(null)}
-                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.55)', borderRadius: 3, cursor: 'pointer' }}
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -352,7 +344,7 @@ function AddModal({ onClose, onSave, existing }) {
 
   const labelStyle = {
     display: 'block', fontFamily: 'monospace', fontSize: 9,
-    color: 'rgba(255,255,255,0.35)', letterSpacing: '0.14em',
+    color: 'rgba(255,255,255,0.32)', letterSpacing: '0.14em',
     textTransform: 'uppercase', marginBottom: 5,
   }
 
@@ -398,7 +390,7 @@ function AddModal({ onClose, onSave, existing }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #222', background: 'transparent', color: 'rgba(255,255,255,0.4)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={loading} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
             {loading ? 'Saving...' : existing ? 'Save Changes' : 'Save'}
           </button>

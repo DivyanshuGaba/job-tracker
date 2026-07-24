@@ -33,7 +33,7 @@ export default function Login() {
 
   const labelStyle = {
     display: 'block', fontFamily: 'monospace', fontSize: 9,
-    color: 'rgba(255,255,255,0.35)', letterSpacing: '0.16em',
+    color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em',
     textTransform: 'uppercase', marginBottom: 6,
   }
 
@@ -43,7 +43,7 @@ export default function Login() {
 
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff', marginBottom: 8 }}>JOB TRACKER</div>
-          <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Sign in to your account</div>
+          <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Sign in to your account</div>
         </div>
 
         <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 6, padding: '28px 24px' }}>
@@ -57,39 +57,16 @@ export default function Login() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={labelStyle}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                placeholder="you@example.com"
-                style={{ ...inputStyle, '::placeholder': { color: 'rgba(255,255,255,0.18)' } }}
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" style={inputStyle} />
             </div>
-
             <div>
               <label style={labelStyle}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                style={inputStyle}
-              />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" style={inputStyle} />
             </div>
-
             <button
               type="submit"
               disabled={loading}
-              style={{
-                fontFamily: 'monospace', fontSize: 9, fontWeight: 700,
-                letterSpacing: '0.16em', textTransform: 'uppercase',
-                padding: '11px', border: '1px solid #fff',
-                background: '#fff', color: '#000', borderRadius: 3,
-                cursor: 'pointer', marginTop: 4,
-                opacity: loading ? 0.6 : 1,
-              }}
+              style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '11px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', marginTop: 4, opacity: loading ? 0.6 : 1 }}
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -97,11 +74,9 @@ export default function Login() {
 
           <div style={{ height: 1, background: '#141414', margin: '20px 0' }} />
 
-          <p style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em' }}>
+          <p style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em' }}>
             No account?{' '}
-            <Link to="/register" style={{ color: 'rgba(255,255,255,0.65)', textDecoration: 'none', letterSpacing: '0.1em' }}>
-              Create one
-            </Link>
+            <Link to="/register" style={{ color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}>Create one</Link>
           </p>
         </div>
       </div>
