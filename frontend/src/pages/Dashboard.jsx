@@ -351,7 +351,7 @@ function AddModal({ onClose, onSave, existing }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 20 }}>
           <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
             {existing ? 'Edit Application' : 'Add Application'}
           </span>
