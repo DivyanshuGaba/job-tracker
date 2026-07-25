@@ -19,7 +19,7 @@ const STATUS_STYLE = {
 const PIE_GRAYS = [
   'rgba(255,255,255,0.8)',
   'rgba(255,255,255,0.55)',
-  'rgba(255,255,255,0.55)',
+  'rgba(255,255,255,0.35)',
   'rgba(255,255,255,0.2)',
   'rgba(255,255,255,0.1)',
 ]
@@ -115,7 +115,7 @@ export default function Dashboard() {
         <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff' }}>JOB TRACKER</span>
         <button
           onClick={logout}
-          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}
         >
           Sign out
         </button>
@@ -182,7 +182,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 20 }}>
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {['All', ...STATUSES].map(s => (
               <button
@@ -351,7 +351,7 @@ function AddModal({ onClose, onSave, existing }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
       <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
             {existing ? 'Edit Application' : 'Add Application'}
           </span>
