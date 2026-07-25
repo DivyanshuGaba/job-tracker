@@ -81,7 +81,7 @@ export default function Login() {
 
           <div style={{ marginTop: 16, padding: '10px 12px', background: '#0a0a0a', border: '1px solid #141414', borderRadius: 3 }}>
             <p style={{ fontFamily: 'monospace', fontSize: 8, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', lineHeight: 1.6, textAlign: 'center', margin: 0 }}>
-              FIRST LOAD MAY TAKE UP TO 30 SECONDS — FREE TIER SERVER WAKING UP
+              FIRST LOAD MAY TAKE UP TO 60 SECONDS — FREE TIER SERVER WAKING UP
             </p>
           </div>
 
