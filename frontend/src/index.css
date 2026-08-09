@@ -1,3 +1,83 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities;/*
+   APPEND EVERYTHING BELOW TO frontend/src/index.css
+   Leave the existing Tailwind directives at the top of the file untouched.*/
+
+
+/* Stop the page itself from scrolling sideways.
+   The applications table scrolls inside its own container instead. */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* Full viewport height that accounts for mobile browser chrome.
+   100dvh excludes the Safari address bar, 100vh does not, which is why
+   pages appear slightly too tall on iOS. The first declaration is the
+   fallback for browsers without dvh support. */
+.min-h-screen-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Horizontal scroll container for the applications table.
+   Sharp, monochrome, 3px, consistent with the rest of the design system. */
+.table-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #454545;
+}
+
+/* Filter buttons on mobile: one scrollable strip, no visible scrollbar. */
+.filter-strip {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.filter-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* Neutralise browser autofill styling.
+   Browsers refuse to let background-color be overridden on an autofilled
+   field, so a large inset box-shadow is painted over it instead. The long
+   transition delay stops the yellow flashing for a frame before the shadow
+   is applied. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset;
+  box-shadow: 0 0 0 1000px #0d0d0d inset;
+  caret-color: #fff;
+  border: 1px solid #1e1e1e;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* Firefox equivalent */
+input:autofill,
+select:autofill,
+textarea:autofill {
+  background: #0d0d0d;
+  color: #fff;
+  border: 1px solid #1e1e1e;
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import client from '../api/client'
+import useIsMobile from '../hooks/useIsMobile'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
@@ -40,7 +41,9 @@ export default function Dashboard() {
   const [editingApp, setEditingApp]     = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [filterStatus, setFilterStatus] = useState('All')
+  const [tableScrolled, setTableScrolled] = useState(false)
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   useEffect(() => { fetchAll() }, [])
 
@@ -102,37 +105,40 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="min-h-screen-safe" style={{ background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.2em' }}>LOADING...</span>
       </div>
     )
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#090909', color: '#fff' }}>
+  const cellPad = isMobile ? '11px 12px' : '11px 16px'
+  const headPad = isMobile ? '9px 12px'  : '9px 16px'
 
-      <nav style={{ borderBottom: '1px solid #1a1a1a', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  return (
+    <div className="min-h-screen-safe" style={{ background: '#090909', color: '#fff' }}>
+
+      <nav style={{ borderBottom: '1px solid #1a1a1a', padding: isMobile ? '13px 16px' : '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff' }}>JOB TRACKER</span>
         <button
           onClick={logout}
-          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer' }}
+          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
         >
           Sign out
         </button>
       </nav>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '18px 14px 40px' : '28px 24px' }}>
 
         {stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden', marginBottom: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden', marginBottom: 1 }}>
             {[
               { label: 'APPLIED',   value: stats.total },
               { label: 'RESPONSE',  value: `${stats.response_rate}%` },
               { label: 'INTERVIEW', value: `${stats.interview_rate}%` },
               { label: 'OFFERS',    value: `${stats.offer_rate}%` },
             ].map(({ label, value }) => (
-              <div key={label} style={{ background: '#0e0e0e', padding: '16px 18px' }}>
-                <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
+              <div key={label} style={{ background: '#0e0e0e', padding: isMobile ? '14px' : '16px 18px' }}>
+                <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: '#fff', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
                 <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', marginTop: 6, letterSpacing: '0.16em' }}>{label}</div>
               </div>
             ))}
@@ -140,11 +146,11 @@ export default function Dashboard() {
         )}
 
         {applications.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none', borderRadius: '0 0 6px 6px', overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ background: '#0b0b0b', padding: '16px 18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none', borderRadius: '0 0 6px 6px', overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ background: '#0b0b0b', padding: isMobile ? '14px' : '16px 18px' }}>
               <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', marginBottom: 12 }}>WEEKLY VOLUME</div>
-              <ResponsiveContainer width="100%" height={90}>
-                <BarChart data={barData} barSize={14}>
+              <ResponsiveContainer width="100%" height={isMobile ? 110 : 90}>
+                <BarChart data={barData} barSize={isMobile ? 22 : 14}>
                   <XAxis dataKey="week" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
                   <YAxis hide allowDecimals={false} />
                   <Tooltip
@@ -158,22 +164,22 @@ export default function Dashboard() {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ background: '#0b0b0b', padding: '16px 18px' }}>
+            <div style={{ background: '#0b0b0b', padding: isMobile ? '14px' : '16px 18px' }}>
               <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', marginBottom: 10 }}>PIPELINE</div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <ResponsiveContainer width={80} height={80}>
+                <ResponsiveContainer width={isMobile ? 92 : 80} height={isMobile ? 92 : 80}>
                   <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={24} outerRadius={36} dataKey="value" paddingAngle={2}>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={isMobile ? 28 : 24} outerRadius={isMobile ? 42 : 36} dataKey="value" paddingAngle={2}>
                       {pieData.map((_, i) => <Cell key={i} fill={PIE_GRAYS[i % PIE_GRAYS.length]} />)}
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
                   {pieData.map((entry, i) => (
                     <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div style={{ width: 5, height: 5, background: PIE_GRAYS[i % PIE_GRAYS.length], borderRadius: 1, flexShrink: 0 }} />
-                      <span style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', flex: 1 }}>{entry.name.toUpperCase()}</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.7)' }}>{entry.value}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.name.toUpperCase()}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.7)', flexShrink: 0 }}>{entry.value}</span>
                     </div>
                   ))}
                 </div>
@@ -182,19 +188,42 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 20 }}>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {/* Filters and add button.
+            Desktop keeps the original single row. Mobile puts the filters in a
+            scrollable strip with the add button on its own full width row. */}
+        <div style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: isMobile ? 10 : 0,
+          marginBottom: 12,
+          marginTop: 20,
+        }}>
+          <div
+            className={isMobile ? 'filter-strip' : undefined}
+            style={{
+              display: 'flex',
+              gap: isMobile ? 6 : 4,
+              flexWrap: isMobile ? 'nowrap' : 'wrap',
+              overflowX: isMobile ? 'auto' : 'visible',
+              paddingBottom: isMobile ? 2 : 0,
+            }}
+          >
             {['All', ...STATUSES].map(s => (
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
                 style={{
                   fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em',
-                  textTransform: 'uppercase', padding: '4px 11px', borderRadius: 3,
+                  textTransform: 'uppercase',
+                  padding: isMobile ? '7px 13px' : '4px 11px',
+                  borderRadius: 3,
                   border: filterStatus === s ? '1px solid #fff' : '1px solid #242424',
                   background: filterStatus === s ? '#fff' : 'transparent',
                   color: filterStatus === s ? '#000' : 'rgba(255,255,255,0.42)',
                   cursor: 'pointer', fontWeight: filterStatus === s ? 700 : 400,
+                  flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
                 {s}
@@ -203,7 +232,13 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => { setEditingApp(null); setShowModal(true) }}
-            style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '6px 16px', borderRadius: 3, border: '1px solid #fff', background: '#fff', color: '#000', cursor: 'pointer' }}
+            style={{
+              fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              padding: isMobile ? '11px 16px' : '6px 16px',
+              borderRadius: 3, border: '1px solid #fff', background: '#fff', color: '#000',
+              cursor: 'pointer', width: isMobile ? '100%' : 'auto', flexShrink: 0,
+            }}
           >
             + ADD
           </button>
@@ -214,54 +249,70 @@ export default function Dashboard() {
             {applications.length === 0 ? 'NO APPLICATIONS YET' : `NO ${filterStatus.toUpperCase()} APPLICATIONS`}
           </div>
         ) : (
-          <div style={{ border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' }}>
-                  {['Company', 'Role', 'Status', 'Date Applied', 'Salary', ''].map(h => (
-                    <th key={h} style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: 'left', padding: '9px 16px', fontWeight: 400 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((app, i) => (
-                  <tr
-                    key={app.id}
-                    onClick={() => handleRowClick(app)}
-                    style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111' : 'none', background: i % 2 === 0 ? '#0d0d0d' : '#0b0b0b', cursor: 'pointer' }}
-                  >
-                    <td style={{ padding: '11px 16px', fontWeight: 600, color: '#fff', letterSpacing: '-0.015em' }}>{app.company}</td>
-                    <td style={{ padding: '11px 16px', color: 'rgba(255,255,255,0.52)' }}>{app.role}</td>
-                    <td style={{ padding: '11px 16px' }}>
-                      <span style={{
-                        fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.12em',
-                        textTransform: 'uppercase', padding: '3px 8px',
-                        border: `1px solid ${STATUS_STYLE[app.status]?.border || 'rgba(255,255,255,0.15)'}`,
-                        color: STATUS_STYLE[app.status]?.color || 'rgba(255,255,255,0.5)',
-                        borderRadius: 3, display: 'inline-block',
-                      }}>
-                        {app.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '11px 16px', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.38)' }}>{app.date_applied}</td>
-                    <td style={{ padding: '11px 16px', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>
-                      {app.salary_min && app.salary_max
-                        ? `£${app.salary_min.toLocaleString()} – £${app.salary_max.toLocaleString()}`
-                        : app.salary_min ? `£${app.salary_min.toLocaleString()}+` : '—'}
-                    </td>
-                    <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                      <button
-                        onClick={e => { e.stopPropagation(); setDeleteTarget(app) }}
-                        style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.45)', borderRadius: 3, cursor: 'pointer' }}
-                      >
-                        Delete
-                      </button>
-                    </td>
+          <>
+            {/* Horizontal scroll container.
+                The table keeps a minimum width on mobile so columns stay readable,
+                and the user swipes sideways instead of the text wrapping. */}
+            <div
+              className="table-scroll"
+              onScroll={e => { if (e.currentTarget.scrollLeft > 4) setTableScrolled(true) }}
+              style={{ border: '1px solid #1a1a1a', borderRadius: 6, overflowX: 'auto', overflowY: 'hidden' }}
+            >
+              <table style={{ width: '100%', minWidth: isMobile ? 660 : 'auto', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' }}>
+                    {['Company', 'Role', 'Status', 'Date Applied', 'Salary', ''].map(h => (
+                      <th key={h} style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: 'left', padding: headPad, fontWeight: 400, whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map((app, i) => (
+                    <tr
+                      key={app.id}
+                      onClick={() => handleRowClick(app)}
+                      style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111' : 'none', background: i % 2 === 0 ? '#0d0d0d' : '#0b0b0b', cursor: 'pointer' }}
+                    >
+                      <td style={{ padding: cellPad, fontWeight: 600, color: '#fff', letterSpacing: '-0.015em', whiteSpace: 'nowrap' }}>{app.company}</td>
+                      <td style={{ padding: cellPad, color: 'rgba(255,255,255,0.52)', whiteSpace: 'nowrap' }}>{app.role}</td>
+                      <td style={{ padding: cellPad }}>
+                        <span style={{
+                          fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.12em',
+                          textTransform: 'uppercase', padding: '3px 8px',
+                          border: `1px solid ${STATUS_STYLE[app.status]?.border || 'rgba(255,255,255,0.15)'}`,
+                          color: STATUS_STYLE[app.status]?.color || 'rgba(255,255,255,0.5)',
+                          borderRadius: 3, display: 'inline-block', whiteSpace: 'nowrap',
+                        }}>
+                          {app.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: cellPad, fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap' }}>{app.date_applied}</td>
+                      <td style={{ padding: cellPad, fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
+                        {app.salary_min && app.salary_max
+                          ? `£${app.salary_min.toLocaleString()} – £${app.salary_max.toLocaleString()}`
+                          : app.salary_min ? `£${app.salary_min.toLocaleString()}+` : '—'}
+                      </td>
+                      <td style={{ padding: cellPad, textAlign: 'right' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteTarget(app) }}
+                          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '5px 9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.45)', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Scroll hint, mobile only, disappears once the user swipes */}
+            {isMobile && !tableScrolled && (
+              <div style={{ fontFamily: 'monospace', fontSize: 8, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.18em', textTransform: 'uppercase', textAlign: 'center', marginTop: 8 }}>
+                Swipe table sideways for more
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -275,7 +326,7 @@ export default function Dashboard() {
 
       {deleteTarget && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-          <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 360, padding: 24 }}>
+          <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 360, padding: isMobile ? 20 : 24 }}>
             <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>Delete Application</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 6, lineHeight: 1.6 }}>
               Remove <span style={{ color: '#fff', fontWeight: 600 }}>{deleteTarget.company}</span> — <span style={{ color: 'rgba(255,255,255,0.6)' }}>{deleteTarget.role}</span>?
@@ -284,13 +335,13 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 onClick={() => setDeleteTarget(null)}
-                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '11px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid rgba(255,255,255,0.7)', background: 'transparent', color: 'rgba(255,255,255,0.8)', borderRadius: 3, cursor: 'pointer' }}
+                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '11px', border: '1px solid rgba(255,255,255,0.7)', background: 'transparent', color: 'rgba(255,255,255,0.8)', borderRadius: 3, cursor: 'pointer' }}
               >
                 Delete
               </button>
@@ -303,6 +354,7 @@ export default function Dashboard() {
 }
 
 function AddModal({ onClose, onSave, existing }) {
+  const isMobile = useIsMobile()
   const [form, setForm] = useState({
     company:      existing?.company      || '',
     role:         existing?.role         || '',
@@ -336,9 +388,11 @@ function AddModal({ onClose, onSave, existing }) {
     } catch { setError('Failed to save') } finally { setLoading(false) }
   }
 
+  /* fontSize 16 on mobile stops iOS Safari zooming the page when a field is focused */
   const inputStyle = {
     width: '100%', background: '#0d0d0d', border: '1px solid #1e1e1e',
-    color: '#fff', borderRadius: 3, padding: '8px 10px', fontSize: 12,
+    color: '#fff', borderRadius: 3, padding: isMobile ? '10px' : '8px 10px',
+    fontSize: isMobile ? 16 : 12,
     outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
   }
 
@@ -348,14 +402,20 @@ function AddModal({ onClose, onSave, existing }) {
     textTransform: 'uppercase', marginBottom: 5,
   }
 
+  const pairGrid = {
+    display: 'grid',
+    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+    gap: 10,
+  }
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-      <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: 24 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'center', zIndex: 50, padding: isMobile ? '20px 14px' : 16, overflowY: 'auto' }}>
+      <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: isMobile ? 18 : 24, maxHeight: isMobile ? 'none' : '90vh', overflowY: isMobile ? 'visible' : 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
             {existing ? 'Edit Application' : 'Add Application'}
           </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px' }}>×</button>
         </div>
 
         {error && (
@@ -365,11 +425,11 @@ function AddModal({ onClose, onSave, existing }) {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={pairGrid}>
             <div><label style={labelStyle}>Company *</label><input style={inputStyle} value={form.company} onChange={e => update('company', e.target.value)} placeholder="Google" /></div>
             <div><label style={labelStyle}>Role *</label><input style={inputStyle} value={form.role} onChange={e => update('role', e.target.value)} placeholder="Software Engineer" /></div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={pairGrid}>
             <div>
               <label style={labelStyle}>Status</label>
               <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.status} onChange={e => update('status', e.target.value)}>
@@ -379,7 +439,7 @@ function AddModal({ onClose, onSave, existing }) {
             <div><label style={labelStyle}>Date Applied</label><input type="date" style={inputStyle} value={form.date_applied} onChange={e => update('date_applied', e.target.value)} /></div>
           </div>
           <div><label style={labelStyle}>Job URL</label><input style={inputStyle} value={form.job_url} onChange={e => update('job_url', e.target.value)} placeholder="https://..." /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={pairGrid}>
             <div><label style={labelStyle}>Min Salary (£)</label><input type="number" style={inputStyle} value={form.salary_min} onChange={e => update('salary_min', e.target.value)} placeholder="40000" /></div>
             <div><label style={labelStyle}>Max Salary (£)</label><input type="number" style={inputStyle} value={form.salary_max} onChange={e => update('salary_max', e.target.value)} placeholder="60000" /></div>
           </div>
@@ -390,8 +450,8 @@ function AddModal({ onClose, onSave, existing }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={loading} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '9px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
+          <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: isMobile ? '12px' : '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={loading} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: isMobile ? '12px' : '9px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
             {loading ? 'Saving...' : existing ? 'Save Changes' : 'Save'}
           </button>
         </div>

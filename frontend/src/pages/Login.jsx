@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../api/client'
+import useIsMobile from '../hooks/useIsMobile'
 
 export default function Login() {
   const [email, setEmail]       = useState('')
@@ -8,6 +9,7 @@ export default function Login() {
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -24,10 +26,13 @@ export default function Login() {
     }
   }
 
+  /* fontSize 16 on mobile stops iOS Safari zooming the page when a field is focused */
   const inputStyle = {
     width: '100%', background: '#0d0d0d',
     border: '1px solid #1e1e1e', color: '#fff',
-    borderRadius: 3, padding: '10px 12px', fontSize: 13,
+    borderRadius: 3,
+    padding: isMobile ? '12px' : '10px 12px',
+    fontSize: isMobile ? 16 : 13,
     outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
   }
 
@@ -38,15 +43,15 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+    <div className="min-h-screen-safe" style={{ background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? '24px 14px' : '1rem' }}>
       <div style={{ width: '100%', maxWidth: 380 }}>
 
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: isMobile ? 26 : 32 }}>
           <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff', marginBottom: 8 }}>JOB TRACKER</div>
           <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Sign in to your account</div>
         </div>
 
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 6, padding: '28px 24px' }}>
+        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 6, padding: isMobile ? '24px 18px' : '28px 24px' }}>
 
           {error && (
             <div style={{ border: '1px solid #2a1515', background: '#110a0a', color: 'rgba(255,100,100,0.8)', fontFamily: 'monospace', fontSize: 9, padding: '9px 12px', borderRadius: 3, marginBottom: 20, letterSpacing: '0.08em' }}>
@@ -57,16 +62,34 @@ export default function Login() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={labelStyle}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@example.com" style={inputStyle} />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                style={inputStyle}
+              />
             </div>
             <div>
               <label style={labelStyle}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" style={inputStyle} />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                autoComplete="current-password"
+                style={inputStyle}
+              />
             </div>
             <button
               type="submit"
               disabled={loading}
-              style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: '11px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', marginTop: 4, opacity: loading ? 0.6 : 1 }}
+              style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', padding: isMobile ? '13px' : '11px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', marginTop: 4, opacity: loading ? 0.6 : 1 }}
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -76,7 +99,7 @@ export default function Login() {
 
           <p style={{ textAlign: 'center', fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.1em' }}>
             No account?{' '}
-            <Link to="/register" style={{ color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}>Create one</Link>
+            <Link to="/register" style={{ color: 'rgba(255,255,255,0.55)', textDecoration: 'none', padding: 4 }}>Create one</Link>
           </p>
 
           <div style={{ marginTop: 16, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid #2a2a2a', borderRadius: 3 }}>
