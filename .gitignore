@@ -1,3 +1,25 @@
+# Python
 backend/test.db
+*.db
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Node
 node_modules/
 frontend/node_modules/
+frontend/dist/
+
+# macOS
+.DS_Store
+
+# Terraform (used later)
+*.tfstate
+*.tfstate.*
+.terraform/
