@@ -5,7 +5,8 @@ from app.database import engine, Base
 import app.models
 from app.routers import auth, applications, health
 
-Base.metadata.create_all(bind=engine)
+if get_settings().auto_create_tables:
+    Base.metadata.create_all(bind=engine)
 
 
 def create_app(settings: Settings) -> FastAPI:

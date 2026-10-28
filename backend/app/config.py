@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     api_prefix: str = ""
     log_level: str = "INFO"
     environment: str = "local"
+    auto_create_tables: bool = True
 
     @model_validator(mode="after")
     def check_database_settings(self):

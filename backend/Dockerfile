@@ -9,6 +9,8 @@ RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin appuser
 WORKDIR /app
 COPY --from=build /install /usr/local
 COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./
 USER 10001
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
