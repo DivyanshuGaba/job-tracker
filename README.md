@@ -32,11 +32,21 @@ A full-stack web application to manage and visualise your job search pipeline. B
 | Frontend | React + Vite |
 | Styling | TailwindCSS |
 | Charts | Recharts |
-| Testing | pytest (10 tests) |
+| Testing | pytest (30 tests) |
 | CI | GitHub Actions |
 | Containerisation | Docker + Docker Compose |
 | Backend deployment | Render |
 | Frontend deployment | Vercel |
+| Cloud (also runs on) | AWS: CloudFront, S3, ECS Fargate, RDS, Secrets Manager |
+| Infrastructure as code | Terraform |
+
+---
+
+## AWS deployment
+
+The same app also runs on AWS, with the whole stack defined as Terraform code: a private S3 bucket behind CloudFront for the frontend, the API on ECS Fargate behind a load balancer, PostgreSQL on RDS in private subnets, secrets in Secrets Manager, logs and alarms in CloudWatch. One command deploys a new release, and one command destroys the stack.
+
+See [docs/aws-deployment.md](docs/aws-deployment.md) for the architecture diagram, security choices, cost, how to deploy and tear it down, and the known limits.
 
 ---
 
@@ -121,7 +131,9 @@ job-tracker/
 │   │   └── routers/
 │   │       ├── auth.py          # Register + login
 │   │       └── applications.py  # CRUD + stats
-│   └── tests/                   # 10 pytest unit tests
+│   ├── alembic/                 # Database migrations
+│   ├── Dockerfile               # Multi stage, non root image
+│   └── tests/                   # pytest tests
 ├── frontend/
 │   └── src/
 │       ├── pages/
@@ -131,6 +143,9 @@ job-tracker/
 │       │   └── ApplicationDetail.jsx
 │       └── api/
 │           └── client.js        # Axios + JWT injection
+├── infra/                       # Terraform for the AWS stack
+├── scripts/deploy.sh            # Build, migrate and deploy to AWS
+├── docs/                        # AWS deployment guide and build notes
 ├── docker-compose.yml
 └── .github/workflows/tests.yml  # CI pipeline
 ```
@@ -146,10 +161,11 @@ job-tracker/
 - [x] Application detail page with inline edit
 - [x] Custom themed delete confirmation dialog
 - [x] Filter by status
-- [x] 10 pytest unit tests
+- [x] 30 pytest tests
 - [x] Docker + GitHub Actions CI
 - [x] Backend deployed on Render
 - [x] Frontend deployed on Vercel
+- [x] AWS deployment defined with Terraform
 - [ ] Email reminders for follow-ups
 - [ ] Interview notes and timeline history
 - [ ] Export to CSV
