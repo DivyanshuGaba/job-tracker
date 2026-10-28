@@ -50,3 +50,31 @@ The app group outbound is open on purpose, so the task can reach ECR, Secrets Ma
 
 Free pieces first: network, ECR, IAM roles, S3 and CloudFront. The hourly paid pieces (RDS, load balancer, Fargate) are created together in one sitting, tested, then destroyed.
 
+### Image scan (basic scan on push, image 570276e)
+
+- Result: 3 HIGH, 9 MEDIUM, 3 LOW. The HIGH findings are Debian system libraries in the base image (zlib and glibc), not application code.
+- Debian marks the glibc one as minor with no fix yet for Debian 13. Accepted for the short test stack, re-scan before any long running deploy and rebuild with a fresh base image.
+
+
+### Frontend (S3 and CloudFront)
+
+- Bucket jobtracker-dg-frontend-2026 (eu-north-1): all public access blocked, built with `npm run build:aws` on Node 22 and uploaded with `aws s3 sync`.
+- Pages are uploaded with no-cache, the hashed files under assets/ with a one year immutable cache.
+- CloudFront distribution jobtracker-frontend: S3 origin with origin access control (OAC), default root object index.html, 403 and 404 return /index.html with 200 for the single page app, no WAF.
+- Later: swap the error page rule for a CloudFront Function when /api/* is added, so API errors are not rewritten.
+
+### Logs and alerts
+
+- Log group /ecs/jobtracker-api, 14 day retention.
+- SNS topic jobtracker-alerts with one confirmed email subscription. A test alert was delivered.
+- Budget credit-burn-watch emails at 80 percent actual and 100 percent forecast. It sends nothing until a threshold is crossed, which is normal.
+
+### IAM roles
+
+- jobtracker-ecs-execution: pull only the jobtracker-backend image, write only to the /ecs/jobtracker-api log group, read only the secret jobtracker/app. The database secret is added after RDS exists.
+- jobtracker-ecs-task: no permissions yet. Add only when a feature needs them.
+- zsh note: write `${VAR}` when a variable is followed by a colon, because `$VAR:r` is a zsh modifier.
+
+### Secrets
+
+- jobtracker/app holds one JSON key, SECRET_KEY (random 64 characters, never displayed). About 0.40 USD a month, so delete with no recovery window when destroying the stack.
