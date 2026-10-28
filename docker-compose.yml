@@ -1,13 +1,30 @@
-version: "3.9"
-
 services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: jobtracker
+      POSTGRES_USER: jobtracker
+      POSTGRES_PASSWORD: local-dev-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobtracker -d jobtracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   api:
     build: ./backend
     ports:
       - "8000:8000"
-    env_file:
-      - ./backend/.env
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DB_HOST: db
+      DB_NAME: jobtracker
+      DB_USER: jobtracker
+      DB_PASSWORD: local-dev-only
+      SECRET_KEY: local-dev-only-not-a-real-secret
+      ENVIRONMENT: local
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
