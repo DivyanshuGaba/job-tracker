@@ -107,3 +107,11 @@ Free pieces first: network, ECR, IAM roles, S3 and CloudFront. The hourly paid p
 ### Test result
 
 - Full path proven on the CloudFront address: sign up, sign in, add a job, refresh, sign out and in again.
+
+### Teardown after the first full test (28 Oct 2026)
+
+- Deleted by hand: ECS service jobtracker-api, load balancer jobtracker-alb (listener and rule with it), database jobtracker-db (no final snapshot, test data only, its managed secret with it).
+- Kept: VPC and security groups, ECR and the image, S3 and CloudFront with the function, IAM roles, secret jobtracker/app, log group, target group, cluster, task definition, alarms (actions switched off).
+- Checked afterwards: no running tasks, no Elastic IPs, no jobtracker database left.
+- The CloudFront /api/* origin now points at a deleted load balancer, so the API is down on the AWS site until the rebuild.
+- Rebuild from Terraform: new database and secret, new load balancer and header value, update the secrets policy and the CloudFront origin, switch the alarm actions back on.
