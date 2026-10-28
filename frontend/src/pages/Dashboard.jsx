@@ -1,49 +1,30 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import client from '../api/client'
 import useIsMobile from '../hooks/useIsMobile'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell
-} from 'recharts'
+import { useTheme } from '../themeContext'
+import { STATUSES } from '../constants'
+import { relativeDate, fullDate, daysSince, formatSalary, getWeekNumber } from '../utils/format'
+import Logo from '../components/Logo'
+import ThemeToggle from '../components/ThemeToggle'
+import StatusBadge from '../components/StatusBadge'
+import AddModal from '../components/AddModal'
+import DeleteDialog from '../components/DeleteDialog'
 
-const STATUSES = ['Applied', 'Phone Screen', 'Interview', 'Offer', 'Rejected']
-
-const STATUS_STYLE = {
-  'Applied':      { color: 'rgba(255,255,255,0.55)', border: 'rgba(255,255,255,0.2)' },
-  'Phone Screen': { color: 'rgba(255,255,255,0.65)', border: 'rgba(255,255,255,0.28)' },
-  'Interview':    { color: 'rgba(255,255,255,0.92)', border: 'rgba(255,255,255,0.5)' },
-  'Offer':        { color: '#fff',                   border: 'rgba(255,255,255,0.85)' },
-  'Rejected':     { color: 'rgba(255,255,255,0.28)', border: 'rgba(255,255,255,0.12)' },
-}
-
-const PIE_GRAYS = [
-  'rgba(255,255,255,0.8)',
-  'rgba(255,255,255,0.55)',
-  'rgba(255,255,255,0.35)',
-  'rgba(255,255,255,0.2)',
-  'rgba(255,255,255,0.1)',
-]
-
-function getWeekNumber(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
-}
+const FOLLOW_UP_DAYS = 7
 
 export default function Dashboard() {
+  const { c, tone } = useTheme()
+  const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const [applications, setApplications] = useState([])
   const [stats, setStats]               = useState(null)
   const [loading, setLoading]           = useState(true)
   const [showModal, setShowModal]       = useState(false)
-  const [editingApp, setEditingApp]     = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [filterStatus, setFilterStatus] = useState('All')
-  const [tableScrolled, setTableScrolled] = useState(false)
-  const navigate = useNavigate()
-  const isMobile = useIsMobile()
+  const [query, setQuery]               = useState('')
 
   useEffect(() => { fetchAll() }, [])
 
@@ -67,10 +48,6 @@ export default function Dashboard() {
     navigate('/login')
   }
 
-  function handleRowClick(app) {
-    navigate(`/application/${app.id}`)
-  }
-
   async function confirmDelete() {
     try {
       await client.delete(`/applications/${deleteTarget.id}`)
@@ -81,381 +58,292 @@ export default function Dashboard() {
     }
   }
 
-  const filtered = filterStatus === 'All'
-    ? applications
-    : applications.filter(a => a.status === filterStatus)
-
   const statusCounts = applications.reduce((acc, app) => {
     acc[app.status] = (acc[app.status] || 0) + 1
     return acc
   }, {})
 
-  const pieData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }))
+  const q = query.trim().toLowerCase()
+  const filtered = applications.filter(a =>
+    (filterStatus === 'All' || a.status === filterStatus) &&
+    (!q || a.company.toLowerCase().includes(q) || a.role.toLowerCase().includes(q))
+  )
 
   const weekCounts = applications.reduce((acc, app) => {
-    const date = new Date(app.date_applied)
-    const week = `W${String(getWeekNumber(date)).padStart(2, '0')}`
+    const week = `W${String(getWeekNumber(new Date(app.date_applied))).padStart(2, '0')}`
     acc[week] = (acc[week] || 0) + 1
     return acc
   }, {})
-
   const barData = Object.entries(weekCounts)
     .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-8)
     .map(([week, count]) => ({ week, count }))
+
+  const followUps = applications
+    .filter(a => a.status === 'Applied' && daysSince(a.date_applied) >= FOLLOW_UP_DAYS)
+    .sort((a, b) => daysSince(b.date_applied) - daysSince(a.date_applied))
+    .slice(0, 3)
+
+  const card = { background: c.surface, border: `1px solid ${c.border}`, borderRadius: 14 }
+  const cardTitle = { margin: 0, fontSize: 15, fontWeight: 600, color: c.text }
+  const sub = { fontSize: 13, color: c.muted }
 
   if (loading) {
     return (
-      <div className="min-h-screen-safe" style={{ background: '#090909', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.2em' }}>LOADING...</span>
+      <div className="min-h-screen-safe" style={{ background: c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontSize: 14, color: c.muted }}>Loading...</span>
       </div>
     )
   }
 
-  const cellPad = isMobile ? '11px 12px' : '11px 16px'
-  const headPad = isMobile ? '9px 12px'  : '9px 16px'
+  const addButton = (
+    <button
+      onClick={() => setShowModal(true)}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, padding: '0 16px', border: 'none', borderRadius: 10, background: c.primary, color: c.onPrimary, fontSize: 14, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      {isMobile ? 'Add' : 'Add application'}
+    </button>
+  )
+
+  const statCards = stats ? [
+    { label: 'Applied', value: stats.total, note: 'Applications sent' },
+    { label: 'Response rate', value: `${stats.response_rate}%`, note: 'Heard back' },
+    { label: 'Interview rate', value: `${stats.interview_rate}%`, note: 'Reached an interview' },
+    { label: 'Offers', value: `${stats.offer_rate}%`, note: 'Offers received' },
+  ] : []
+
+  const cols = 'minmax(0,2.2fr) minmax(0,2fr) minmax(0,1.4fr) minmax(0,1.2fr) minmax(0,1.4fr) 84px'
 
   return (
-    <div className="min-h-screen-safe" style={{ background: '#090909', color: '#fff' }}>
+    <div className="min-h-screen-safe" style={{ background: c.bg, color: c.text }}>
 
-      <nav style={{ borderBottom: '1px solid #1a1a1a', padding: isMobile ? '13px 16px' : '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#fff' }}>JOB TRACKER</span>
-        <button
-          onClick={logout}
-          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-        >
-          Sign out
-        </button>
-      </nav>
+      <header style={{ background: c.surface, borderBottom: `1px solid ${c.border}` }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '10px 16px' : '12px 32px', display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16 }}>
+          <Link to="/" style={{ textDecoration: 'none', marginRight: isMobile ? 0 : 8 }}><Logo size={isMobile ? 30 : 32} /></Link>
+          <div style={{ flex: 1 }} />
+          {addButton}
+          <ThemeToggle />
+          <button onClick={logout} style={{ height: 40, padding: '0 6px', border: 'none', background: 'none', color: c.muted, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>Sign out</button>
+        </div>
+      </header>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: isMobile ? '18px 14px 40px' : '28px 24px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '20px 16px 48px' : '32px 32px 64px', display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24 }}>
+
+        <div>
+          <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 28, lineHeight: 1.2, fontWeight: 700, letterSpacing: '-0.02em' }}>Your applications</h1>
+          <p style={{ margin: '6px 0 0', fontSize: 15, color: c.muted }}>
+            {applications.length === 0 ? 'Nothing here yet. Add your first one.' : `${applications.length} ${applications.length === 1 ? 'application' : 'applications'} so far.`}
+          </p>
+        </div>
 
         {stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderRadius: 6, overflow: 'hidden', marginBottom: 1 }}>
-            {[
-              { label: 'APPLIED',   value: stats.total },
-              { label: 'RESPONSE',  value: `${stats.response_rate}%` },
-              { label: 'INTERVIEW', value: `${stats.interview_rate}%` },
-              { label: 'OFFERS',    value: `${stats.offer_rate}%` },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ background: '#0e0e0e', padding: isMobile ? '14px' : '16px 18px' }}>
-                <div style={{ fontSize: isMobile ? 24 : 28, fontWeight: 700, color: '#fff', lineHeight: 1, letterSpacing: '-0.04em' }}>{value}</div>
-                <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', marginTop: 6, letterSpacing: '0.16em' }}>{label}</div>
+          <section aria-label="Summary" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))', gap: isMobile ? 12 : 16 }}>
+            {statCards.map(s => (
+              <div key={s.label} style={{ ...card, padding: isMobile ? 14 : 20, display: 'flex', flexDirection: 'column', gap: isMobile ? 4 : 8 }}>
+                <div style={{ ...sub, fontWeight: 500 }}>{s.label}</div>
+                <div style={{ fontSize: isMobile ? 26 : 34, lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+                {!isMobile && <div style={sub}>{s.note}</div>}
               </div>
             ))}
-          </div>
+          </section>
         )}
 
         {applications.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 1, background: '#1a1a1a', border: '1px solid #1a1a1a', borderTop: 'none', borderRadius: '0 0 6px 6px', overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ background: '#0b0b0b', padding: isMobile ? '14px' : '16px 18px' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', marginBottom: 12 }}>WEEKLY VOLUME</div>
-              <ResponsiveContainer width="100%" height={isMobile ? 110 : 90}>
-                <BarChart data={barData} barSize={isMobile ? 22 : 14}>
-                  <XAxis dataKey="week" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: 'monospace' }} axisLine={false} tickLine={false} />
+          <section style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0,1fr))', gap: 16 }}>
+
+            <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <h2 style={cardTitle}>Applications per week</h2>
+                <span style={sub}>Latest {barData.length}</span>
+              </div>
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={barData} barSize={isMobile ? 24 : 22}>
+                  <XAxis dataKey="week" tick={{ fill: c.muted, fontSize: 12 }} axisLine={{ stroke: c.border }} tickLine={false} />
                   <YAxis hide allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ background: '#111', border: '1px solid #222', borderRadius: 4, fontFamily: 'monospace', fontSize: 10 }}
-                    labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
-                    itemStyle={{ color: '#fff' }}
-                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                    contentStyle={{ background: c.surface, border: `1px solid ${c.border}`, borderRadius: 8, fontSize: 13 }}
+                    labelStyle={{ color: c.muted }}
+                    itemStyle={{ color: c.text }}
+                    cursor={{ fill: c.hover }}
                   />
-                  <Bar dataKey="count" fill="rgba(255,255,255,0.7)" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="count" name="Applications" radius={[6, 6, 0, 0]}>
+                    {barData.map((d, i) => <Cell key={d.week} fill={i === barData.length - 1 ? c.chartBarNow : c.chartBar} />)}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            <div style={{ background: '#0b0b0b', padding: isMobile ? '14px' : '16px 18px' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', marginBottom: 10 }}>PIPELINE</div>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <ResponsiveContainer width={isMobile ? 92 : 80} height={isMobile ? 92 : 80}>
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={isMobile ? 28 : 24} outerRadius={isMobile ? 42 : 36} dataKey="value" paddingAngle={2}>
-                      {pieData.map((_, i) => <Cell key={i} fill={PIE_GRAYS[i % PIE_GRAYS.length]} />)}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-                  {pieData.map((entry, i) => (
-                    <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 5, height: 5, background: PIE_GRAYS[i % PIE_GRAYS.length], borderRadius: 1, flexShrink: 0 }} />
-                      <span style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.1em', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{entry.name.toUpperCase()}</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.7)', flexShrink: 0 }}>{entry.value}</span>
-                    </div>
+            <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <h2 style={cardTitle}>Where they are now</h2>
+                <span style={sub}>{applications.length} total</span>
+              </div>
+              <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', gap: 2 }}>
+                {STATUSES.filter(s => statusCounts[s]).map(s => (
+                  <div key={s} title={s} style={{ flex: statusCounts[s], background: tone(s).dot }} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {STATUSES.map(s => (
+                  <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 5, background: tone(s).dot, flexShrink: 0 }} />
+                    <span style={{ flex: 1, color: c.textSoft }}>{s}</span>
+                    <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{statusCounts[s] || 0}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ ...card, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                <h2 style={cardTitle}>Time to follow up</h2>
+                <span style={sub}>No reply after {FOLLOW_UP_DAYS} days</span>
+              </div>
+              {followUps.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: c.muted }}>You are all caught up. Nothing has been waiting longer than a week.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {followUps.map(a => (
+                    <Link key={a.id} to={`/application/${a.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, border: `1px solid ${c.border}`, borderRadius: 10, textDecoration: 'none', color: c.text }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, background: c.subtle, border: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: c.textSoft, flexShrink: 0 }}>{a.company.charAt(0).toUpperCase()}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.company}</div>
+                        <div style={{ ...sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.role}</div>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: c.warnFg, background: c.warnBg, borderRadius: 999, padding: '4px 10px', whiteSpace: 'nowrap' }}>{daysSince(a.date_applied)} days</span>
+                    </Link>
                   ))}
                 </div>
-              </div>
+              )}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Filters and add button.
-            Desktop keeps the original single row. Mobile puts the filters in a
-            scrollable strip with the add button on its own full width row. */}
-        <div style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          justifyContent: 'space-between',
-          alignItems: isMobile ? 'stretch' : 'center',
-          gap: isMobile ? 10 : 0,
-          marginBottom: 12,
-          marginTop: 20,
-        }}>
+        <section style={{ ...card, overflow: 'hidden' }}>
+          <div style={{ padding: isMobile ? '16px 16px 0' : '16px 20px 0', display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 style={{ ...cardTitle, fontSize: 16 }}>All applications</h2>
+            <label style={{ flex: isMobile ? '1 1 100%' : '0 1 300px', display: 'flex', alignItems: 'center', gap: 8, height: 40, padding: '0 12px', border: `1px solid ${c.borderStrong}`, borderRadius: 10, background: c.inputBg, boxSizing: 'border-box' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.faint} strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+              <input
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Search company or role"
+                aria-label="Search applications"
+                style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: c.text, fontSize: isMobile ? 16 : 14, fontFamily: 'inherit' }}
+              />
+            </label>
+          </div>
+
           <div
-            className={isMobile ? 'filter-strip' : undefined}
-            style={{
-              display: 'flex',
-              gap: isMobile ? 6 : 4,
-              flexWrap: isMobile ? 'nowrap' : 'wrap',
-              overflowX: isMobile ? 'auto' : 'visible',
-              paddingBottom: isMobile ? 2 : 0,
-            }}
+            role="tablist"
+            aria-label="Filter by status"
+            className="filter-strip"
+            style={{ display: 'flex', gap: isMobile ? 8 : 4, padding: isMobile ? '12px 16px' : '12px 20px 0', borderBottom: isMobile ? 'none' : `1px solid ${c.border}`, overflowX: 'auto' }}
           >
-            {['All', ...STATUSES].map(s => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                style={{
-                  fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                  padding: isMobile ? '7px 13px' : '4px 11px',
-                  borderRadius: 3,
-                  border: filterStatus === s ? '1px solid #fff' : '1px solid #242424',
-                  background: filterStatus === s ? '#fff' : 'transparent',
-                  color: filterStatus === s ? '#000' : 'rgba(255,255,255,0.42)',
-                  cursor: 'pointer', fontWeight: filterStatus === s ? 700 : 400,
-                  flexShrink: 0, whiteSpace: 'nowrap',
-                }}
-              >
-                {s}
-              </button>
-            ))}
+            {['All', ...STATUSES].map(s => {
+              const active = filterStatus === s
+              const n = s === 'All' ? applications.length : (statusCounts[s] || 0)
+              return (
+                <button
+                  key={s}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setFilterStatus(s)}
+                  style={isMobile ? {
+                    flexShrink: 0, height: 40, padding: '0 14px', borderRadius: 20, fontSize: 14, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                    border: active ? 'none' : `1px solid ${c.borderStrong}`,
+                    background: active ? c.primary : c.surface, color: active ? c.onPrimary : c.textSoft,
+                  } : {
+                    flexShrink: 0, padding: '10px 12px', border: 'none', background: 'transparent', cursor: 'pointer', whiteSpace: 'nowrap',
+                    fontSize: 14, fontWeight: 600, marginBottom: -1,
+                    borderBottom: `2px solid ${active ? c.primary : 'transparent'}`,
+                    color: active ? c.accentText : c.muted,
+                  }}
+                >
+                  {s}
+                  <span style={{ marginLeft: 6, fontSize: 12, padding: '2px 7px', borderRadius: 999, fontVariantNumeric: 'tabular-nums', background: active && !isMobile ? c.accentSoft : (isMobile && active ? 'rgba(128,128,128,0.25)' : c.subtle), color: active && !isMobile ? c.accentText : 'inherit' }}>{n}</span>
+                </button>
+              )
+            })}
           </div>
-          <button
-            onClick={() => { setEditingApp(null); setShowModal(true) }}
-            style={{
-              fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-              padding: isMobile ? '11px 16px' : '6px 16px',
-              borderRadius: 3, border: '1px solid #fff', background: '#fff', color: '#000',
-              cursor: 'pointer', width: isMobile ? '100%' : 'auto', flexShrink: 0,
-            }}
-          >
-            + ADD
-          </button>
-        </div>
 
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.16em' }}>
-            {applications.length === 0 ? 'NO APPLICATIONS YET' : `NO ${filterStatus.toUpperCase()} APPLICATIONS`}
-          </div>
-        ) : (
-          <>
-            {/* Horizontal scroll container.
-                The table keeps a minimum width on mobile so columns stay readable,
-                and the user swipes sideways instead of the text wrapping. */}
-            <div
-              className="table-scroll"
-              onScroll={e => { if (e.currentTarget.scrollLeft > 4) setTableScrolled(true) }}
-              style={{ border: '1px solid #1a1a1a', borderRadius: 6, overflowX: 'auto', overflowY: 'hidden' }}
-            >
-              <table style={{ width: '100%', minWidth: isMobile ? 660 : 'auto', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #1a1a1a', background: '#0a0a0a' }}>
-                    {['Company', 'Role', 'Status', 'Date Applied', 'Salary', ''].map(h => (
-                      <th key={h} style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.32)', letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: 'left', padding: headPad, fontWeight: 400, whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((app, i) => (
-                    <tr
-                      key={app.id}
-                      onClick={() => handleRowClick(app)}
-                      style={{ borderBottom: i < filtered.length - 1 ? '1px solid #111' : 'none', background: i % 2 === 0 ? '#0d0d0d' : '#0b0b0b', cursor: 'pointer' }}
-                    >
-                      <td style={{ padding: cellPad, fontWeight: 600, color: '#fff', letterSpacing: '-0.015em', whiteSpace: 'nowrap' }}>{app.company}</td>
-                      <td style={{ padding: cellPad, color: 'rgba(255,255,255,0.52)', whiteSpace: 'nowrap' }}>{app.role}</td>
-                      <td style={{ padding: cellPad }}>
-                        <span style={{
-                          fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.12em',
-                          textTransform: 'uppercase', padding: '3px 8px',
-                          border: `1px solid ${STATUS_STYLE[app.status]?.border || 'rgba(255,255,255,0.15)'}`,
-                          color: STATUS_STYLE[app.status]?.color || 'rgba(255,255,255,0.5)',
-                          borderRadius: 3, display: 'inline-block', whiteSpace: 'nowrap',
-                        }}>
-                          {app.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: cellPad, fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap' }}>{app.date_applied}</td>
-                      <td style={{ padding: cellPad, fontFamily: 'monospace', fontSize: 10, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
-                        {app.salary_min && app.salary_max
-                          ? `£${app.salary_min.toLocaleString()} – £${app.salary_max.toLocaleString()}`
-                          : app.salary_min ? `£${app.salary_min.toLocaleString()}+` : '—'}
-                      </td>
-                      <td style={{ padding: cellPad, textAlign: 'right' }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); setDeleteTarget(app) }}
-                          style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '5px 9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.45)', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '56px 20px', color: c.muted, fontSize: 15 }}>
+              {applications.length === 0
+                ? 'No applications yet. Use Add application to start your list.'
+                : q ? `Nothing matches "${query.trim()}".` : `No ${filterStatus} applications.`}
             </div>
-
-            {/* Scroll hint, mobile only, disappears once the user swipes */}
-            {isMobile && !tableScrolled && (
-              <div style={{ fontFamily: 'monospace', fontSize: 8, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.18em', textTransform: 'uppercase', textAlign: 'center', marginTop: 8 }}>
-                Swipe table sideways for more
+          ) : isMobile ? (
+            <ul style={{ margin: 0, padding: '0 16px 16px', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {filtered.map(app => (
+                <li key={app.id}>
+                  <Link to={`/application/${app.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14, border: `1px solid ${c.border}`, borderRadius: 12, background: c.surface, textDecoration: 'none', color: c.text }}>
+                    <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 10, background: c.subtle, border: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: c.textSoft }}>{app.company.charAt(0).toUpperCase()}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.company}</span>
+                      <span style={{ display: 'block', fontSize: 13, color: c.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.role} · {relativeDate(app.date_applied)}</span>
+                    </span>
+                    <StatusBadge status={app.status} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="table-scroll" style={{ overflowX: 'auto' }}>
+              <div role="table" style={{ minWidth: 860 }}>
+                <div role="row" style={{ display: 'grid', gridTemplateColumns: cols, gap: 16, padding: '12px 20px', background: c.subtle, borderBottom: `1px solid ${c.border}`, borderTop: `1px solid ${c.border}`, fontSize: 12, fontWeight: 600, color: c.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {['Company', 'Role', 'Status', 'Applied', 'Salary', ''].map((h, i) => <div key={i} role="columnheader">{h}</div>)}
+                </div>
+                {filtered.map(app => (
+                  <div
+                    key={app.id}
+                    role="row"
+                    className="row-hover"
+                    onClick={() => navigate(`/application/${app.id}`)}
+                    style={{ display: 'grid', gridTemplateColumns: cols, gap: 16, padding: '0 20px', minHeight: 60, alignItems: 'center', borderBottom: `1px solid ${c.border}`, fontSize: 14, cursor: 'pointer' }}
+                  >
+                    <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      <span style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: c.subtle, border: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, color: c.textSoft }}>{app.company.charAt(0).toUpperCase()}</span>
+                      <Link to={`/application/${app.id}`} onClick={e => e.stopPropagation()} style={{ fontWeight: 600, color: c.text, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.company}</Link>
+                    </div>
+                    <div role="cell" style={{ color: c.textSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.role}</div>
+                    <div role="cell"><StatusBadge status={app.status} /></div>
+                    <div role="cell" title={fullDate(app.date_applied)} style={{ color: c.textSoft, whiteSpace: 'nowrap' }}>{relativeDate(app.date_applied)}</div>
+                    <div role="cell" style={{ color: c.textSoft, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{formatSalary(app.salary_min, app.salary_max)}</div>
+                    <div role="cell" style={{ textAlign: 'right' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setDeleteTarget(app) }}
+                        aria-label={`Delete ${app.company}`}
+                        style={{ height: 36, padding: '0 12px', border: `1px solid ${c.borderStrong}`, background: 'transparent', color: c.muted, borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          )}
+
+          <div style={{ padding: '12px 20px', fontSize: 13, color: c.muted, borderTop: isMobile ? `1px solid ${c.border}` : 'none' }}>
+            Showing {filtered.length} of {applications.length}
+          </div>
+        </section>
+      </main>
 
       {showModal && (
         <AddModal
-          onClose={() => { setShowModal(false); setEditingApp(null) }}
-          onSave={() => { setShowModal(false); setEditingApp(null); fetchAll() }}
-          existing={editingApp}
+          onClose={() => setShowModal(false)}
+          onSave={() => { setShowModal(false); fetchAll() }}
+          existing={null}
         />
       )}
 
       {deleteTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
-          <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 360, padding: isMobile ? 20 : 24 }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>Delete Application</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 6, lineHeight: 1.6 }}>
-              Remove <span style={{ color: '#fff', fontWeight: 600 }}>{deleteTarget.company}</span> — <span style={{ color: 'rgba(255,255,255,0.6)' }}>{deleteTarget.role}</span>?
-            </div>
-            <div style={{ fontFamily: 'monospace', fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.1em', marginBottom: 22 }}>This cannot be undone.</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => setDeleteTarget(null)}
-                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '11px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '11px', border: '1px solid rgba(255,255,255,0.7)', background: 'transparent', color: 'rgba(255,255,255,0.8)', borderRadius: 3, cursor: 'pointer' }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteDialog app={deleteTarget} onCancel={() => setDeleteTarget(null)} onConfirm={confirmDelete} />
       )}
-    </div>
-  )
-}
-
-function AddModal({ onClose, onSave, existing }) {
-  const isMobile = useIsMobile()
-  const [form, setForm] = useState({
-    company:      existing?.company      || '',
-    role:         existing?.role         || '',
-    status:       existing?.status       || 'Applied',
-    date_applied: existing?.date_applied || new Date().toISOString().split('T')[0],
-    job_url:      existing?.job_url      || '',
-    salary_min:   existing?.salary_min   || '',
-    salary_max:   existing?.salary_max   || '',
-    notes:        existing?.notes        || '',
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-
-  function update(field, value) { setForm(f => ({ ...f, [field]: value })) }
-
-  async function handleSave() {
-    if (!form.company || !form.role) { setError('Company and role are required'); return }
-    setLoading(true); setError('')
-    try {
-      const payload = {
-        ...form,
-        salary_min: form.salary_min ? parseInt(form.salary_min) : null,
-        salary_max: form.salary_max ? parseInt(form.salary_max) : null,
-      }
-      if (existing) {
-        await client.put(`/applications/${existing.id}`, payload)
-      } else {
-        await client.post('/applications/', payload)
-      }
-      onSave()
-    } catch { setError('Failed to save') } finally { setLoading(false) }
-  }
-
-  /* fontSize 16 on mobile stops iOS Safari zooming the page when a field is focused */
-  const inputStyle = {
-    width: '100%', background: '#0d0d0d', border: '1px solid #1e1e1e',
-    color: '#fff', borderRadius: 3, padding: isMobile ? '10px' : '8px 10px',
-    fontSize: isMobile ? 16 : 12,
-    outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
-  }
-
-  const labelStyle = {
-    display: 'block', fontFamily: 'monospace', fontSize: 9,
-    color: 'rgba(255,255,255,0.32)', letterSpacing: '0.14em',
-    textTransform: 'uppercase', marginBottom: 5,
-  }
-
-  const pairGrid = {
-    display: 'grid',
-    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-    gap: 10,
-  }
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'center', zIndex: 50, padding: isMobile ? '20px 14px' : 16, overflowY: 'auto' }}>
-      <div style={{ background: '#0d0d0d', border: '1px solid #1e1e1e', borderRadius: 6, width: '100%', maxWidth: 480, padding: isMobile ? 18 : 24, maxHeight: isMobile ? 'none' : '90vh', overflowY: isMobile ? 'visible' : 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>
-            {existing ? 'Edit Application' : 'Add Application'}
-          </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 22, lineHeight: 1, padding: '0 4px' }}>×</button>
-        </div>
-
-        {error && (
-          <div style={{ border: '1px solid #2e1a1a', background: '#150d0d', color: 'rgba(255,120,120,0.8)', fontFamily: 'monospace', fontSize: 9, padding: '8px 10px', borderRadius: 3, marginBottom: 14, letterSpacing: '0.08em' }}>
-            {error}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={pairGrid}>
-            <div><label style={labelStyle}>Company *</label><input style={inputStyle} value={form.company} onChange={e => update('company', e.target.value)} placeholder="Google" /></div>
-            <div><label style={labelStyle}>Role *</label><input style={inputStyle} value={form.role} onChange={e => update('role', e.target.value)} placeholder="Software Engineer" /></div>
-          </div>
-          <div style={pairGrid}>
-            <div>
-              <label style={labelStyle}>Status</label>
-              <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.status} onChange={e => update('status', e.target.value)}>
-                {STATUSES.map(s => <option key={s} value={s} style={{ background: '#0d0d0d' }}>{s}</option>)}
-              </select>
-            </div>
-            <div><label style={labelStyle}>Date Applied</label><input type="date" style={inputStyle} value={form.date_applied} onChange={e => update('date_applied', e.target.value)} /></div>
-          </div>
-          <div><label style={labelStyle}>Job URL</label><input style={inputStyle} value={form.job_url} onChange={e => update('job_url', e.target.value)} placeholder="https://..." /></div>
-          <div style={pairGrid}>
-            <div><label style={labelStyle}>Min Salary (£)</label><input type="number" style={inputStyle} value={form.salary_min} onChange={e => update('salary_min', e.target.value)} placeholder="40000" /></div>
-            <div><label style={labelStyle}>Max Salary (£)</label><input type="number" style={inputStyle} value={form.salary_max} onChange={e => update('salary_max', e.target.value)} placeholder="60000" /></div>
-          </div>
-          <div>
-            <label style={labelStyle}>Notes</label>
-            <textarea style={{ ...inputStyle, resize: 'none', height: 72 }} value={form.notes} onChange={e => update('notes', e.target.value)} placeholder="Notes about this application..." />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: isMobile ? '12px' : '9px', border: '1px solid #333', background: 'transparent', color: 'rgba(255,255,255,0.52)', borderRadius: 3, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={loading} style={{ flex: 1, fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', padding: isMobile ? '12px' : '9px', border: '1px solid #fff', background: '#fff', color: '#000', borderRadius: 3, cursor: 'pointer', fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
-            {loading ? 'Saving...' : existing ? 'Save Changes' : 'Save'}
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

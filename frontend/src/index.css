@@ -9,6 +9,25 @@ body {
   overflow-x: hidden;
 }
 
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid #3538CD;
+  outline-offset: 2px;
+}
+
+[data-theme='dark'] :focus-visible {
+  outline-color: #fff;
+}
+
+.row-hover:hover {
+  background: var(--row-hover);
+}
+
 .min-h-screen-safe {
   min-height: 100vh;
   min-height: 100dvh;
@@ -26,15 +45,23 @@ body {
 }
 
 .table-scroll::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: #F2F4F7;
 }
 
 .table-scroll::-webkit-scrollbar-thumb {
+  background: #D0D5DD;
+}
+
+[data-theme='dark'] .table-scroll::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+[data-theme='dark'] .table-scroll::-webkit-scrollbar-thumb {
   background: #2e2e2e;
 }
 
 .table-scroll::-webkit-scrollbar-thumb:hover {
-  background: #454545;
+  background: #98A2B3;
 }
 
 /* Filter buttons on mobile: one scrollable strip, no visible scrollbar. */
@@ -46,26 +73,28 @@ body {
 .filter-strip::-webkit-scrollbar {
   display: none;
 }
-/*Neutralise browser autofill styling.*/
+/* Keep browser autofill from painting a yellow or blue box. */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active,
 select:-webkit-autofill,
 textarea:-webkit-autofill {
+  -webkit-text-fill-color: #101828;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  caret-color: #101828;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+[data-theme='dark'] input:-webkit-autofill,
+[data-theme='dark'] input:-webkit-autofill:hover,
+[data-theme='dark'] input:-webkit-autofill:focus,
+[data-theme='dark'] input:-webkit-autofill:active,
+[data-theme='dark'] select:-webkit-autofill,
+[data-theme='dark'] textarea:-webkit-autofill {
   -webkit-text-fill-color: #fff;
   -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset;
   box-shadow: 0 0 0 1000px #0d0d0d inset;
   caret-color: #fff;
-  border: 1px solid #1e1e1e;
-  transition: background-color 9999s ease-in-out 0s;
-}
-
-/* Firefox equivalent */
-input:autofill,
-select:autofill,
-textarea:autofill {
-  background: #0d0d0d;
-  color: #fff;
-  border: 1px solid #1e1e1e;
 }
