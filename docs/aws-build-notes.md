@@ -131,3 +131,11 @@ Free pieces first: network, ECR, IAM roles, S3 and CloudFront. The hourly paid p
 - Instead, scripts/deploy.sh does the same steps from a signed in terminal: build and push the image, register a new task definition revision, run migrations as a one-off task, update the service and check it did not roll back, then build the frontend, sync it to S3 and invalidate CloudFront.
 - GitHub Actions still runs the backend tests on every push and pull request. Permanent access keys in GitHub secrets were rejected on purpose.
 - Usage: from the repo root on a clean tree, `scripts/deploy.sh` (all), or `scripts/deploy.sh backend` or `scripts/deploy.sh frontend`. Needs Node 22 for the frontend build and Docker running.
+
+## Cutover decision (28 Oct 2026)
+
+- The Render API and Vercel site stay as the main links on the CV, because they cost nothing to keep running.
+- The AWS address and the repo are added as "also deployed on AWS" while the stack is up.
+- The AWS stack is destroyed on 12 November 2026 with `terraform destroy` in `infra/`. The state bucket and the alerts topic stay.
+- Postponed for later: CSV export with presigned S3 links, and email reminders.
+- The frontend was redesigned (light by default, dark mode toggle) and deployed to AWS with `scripts/deploy.sh`.
