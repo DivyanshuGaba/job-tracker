@@ -5,6 +5,8 @@
 > 📡 **API Docs:** https://job-tracker-api-et9x.onrender.com/docs
 >
 > *(Free tier backend — first request may take up to 30 seconds to wake up)*
+>
+> ☁️ **Also deployed on AWS:** https://d3n1adnr29hede.cloudfront.net *(planned to stay up until 12 November 2026)*
 
 A full-stack web application to manage and visualise your job search pipeline. Built with FastAPI, PostgreSQL, and React — featuring JWT authentication, a real-time dashboard with charts, and full CRUD for tracking every application from first contact to offer.
 
@@ -15,9 +17,12 @@ A full-stack web application to manage and visualise your job search pipeline. B
 - **Secure auth** — register and log in with JWT tokens and bcrypt password hashing
 - **Application pipeline** — track status across Applied, Phone Screen, Interview, Offer, and Rejected
 - **Live dashboard** — stat cards showing response rate, interview rate, and offer rate
-- **Charts** — weekly application volume (bar chart) and pipeline breakdown (donut chart)
-- **Detail page** — click any application to view full details, edit inline, or delete
-- **Custom UI** — sharp dark design system with monospace typography, consistent contrast hierarchy
+- **Charts** — weekly application volume (bar chart) and a pipeline breakdown by stage
+- **Follow-up reminders** — applications still marked Applied after 7 days are listed on the dashboard
+- **Search and filters** — search by company or role, and filter by status with live counts
+- **Detail page** — move an application between stages in one click, edit its details, or delete it
+- **Light and dark mode** — light by default, with a toggle that remembers your choice
+- **Responsive design** — table on desktop, tappable cards on phones
 
 ---
 
@@ -141,6 +146,9 @@ job-tracker/
 │       │   ├── Register.jsx
 │       │   ├── Dashboard.jsx
 │       │   └── ApplicationDetail.jsx
+│       ├── components/          # Shared UI: auth form, dialogs, badges, theme toggle
+│       ├── theme.jsx            # Light and dark colour tokens
+│       ├── utils/format.js      # Dates and salary formatting
 │       └── api/
 │           └── client.js        # Axios + JWT injection
 ├── infra/                       # Terraform for the AWS stack
@@ -160,12 +168,13 @@ job-tracker/
 - [x] Dashboard with stat cards and charts
 - [x] Application detail page with inline edit
 - [x] Custom themed delete confirmation dialog
-- [x] Filter by status
+- [x] Filter by status and search
+- [x] Redesigned interface with light and dark mode
 - [x] 30 pytest tests
 - [x] Docker + GitHub Actions CI
 - [x] Backend deployed on Render
 - [x] Frontend deployed on Vercel
 - [x] AWS deployment defined with Terraform
-- [ ] Email reminders for follow-ups
+- [ ] Email reminders for follow-ups (the dashboard already highlights them)
 - [ ] Interview notes and timeline history
 - [ ] Export to CSV
