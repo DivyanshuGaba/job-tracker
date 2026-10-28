@@ -78,3 +78,32 @@ Free pieces first: network, ECR, IAM roles, S3 and CloudFront. The hourly paid p
 ### Secrets
 
 - jobtracker/app holds one JSON key, SECRET_KEY (random 64 characters, never displayed). About 0.40 USD a month, so delete with no recovery window when destroying the stack.
+
+### Database (RDS)
+
+- jobtracker-db: PostgreSQL 16 on db.t4g.micro, single zone, 20 GB gp3, encrypted, private subnets, master password managed by RDS in Secrets Manager (not set by hand).
+- The free plan caps backup retention at 1 day, so 7 days was refused (FreeTierRestrictionError). Upgrading the plan would end the credits, so it stays at 1.
+- The app connects with the master user for now. A smaller app-only user is a later improvement.
+
+### API on ECS Fargate
+
+- Cluster jobtracker, task definition jobtracker-api (0.25 vCPU, 512 MB, ARM64), service jobtracker-api with the deployment circuit breaker and rollback.
+- Secrets come from Secrets Manager (SECRET_KEY, DB_USER, DB_PASSWORD). Other settings are plain environment values in the task definition.
+- Migration runs as a one-off task with the command override `alembic upgrade head`. A second one-off task listed the tables to prove it (alembic_version, users, applications).
+- Alembic is quiet on success, so empty logs for a migration are normal.
+
+### Load balancer and CloudFront API route
+
+- jobtracker-alb in the public subnets, listener on port 80. Default answer is 403, and a rule forwards to jobtracker-tg only when the header X-Origin-Verify matches a secret kept in a private file outside the repo.
+- CloudFront has a second origin for the load balancer (HTTP only) and a /api/* behavior: caching disabled, all methods, origin request policy AllViewerExceptHostHeader.
+- Known limit: the hop from CloudFront to the load balancer is plain HTTP. Encrypting it needs a custom domain and a certificate.
+- The header value was partly shown in a screenshot, so replace it with a fresh value in the Terraform rebuild.
+- A CloudFront Function (jobtracker-spa-rewrite, viewer request on the default behavior) sends paths without a file extension to /index.html. The old 403 and 404 error page rules were removed so API errors pass through.
+
+### Alarms
+
+- jobtracker-no-healthy-target, jobtracker-api-5xx and jobtracker-db-low-storage all notify the jobtracker-alerts topic.
+
+### Test result
+
+- Full path proven on the CloudFront address: sign up, sign in, add a job, refresh, sign out and in again.
